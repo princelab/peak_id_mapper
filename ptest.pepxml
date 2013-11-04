@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<msms_pipeline_analysis xmlns="http://regis-web.systemsbiology.net/pepXML" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://regis-web.systemsbiology.net/pepXML http://jp1.chem.byu.edu/mascot/xmlns/schema/pepXML_v18/pepXML_v18.xsd" date="2011-06-01T23:50:32Z" summary_xml="F002706.xml">
+<msms_run_summary base_name="" raw_data_type="" raw_data="">
+<sample_enzyme name="Trypsin" description="" fidelity="specific" independent="0">
+<specificity sense="C" min_spacing="1" cut="KR" no_cut="P"/>
+</sample_enzyme>
+<search_summary base_name="http://jp1.chem.byu.edu/mascot/cgi/master_results.pl?file=../data/20110601/F002706.dat" search_engine="MASCOT" precursor_mass_type="monoisotopic" fragment_mass_type="monoisotopic" out_data_type="" out_data="" search_id="1">
+<search_database local_path="/home/ryanmt/human_xueyuan.fasta" database_name="gp41-Human" database_release_identifier="human_xueyuan.fasta" size_in_db_entries="106160" size_of_residues="45098445" type="AA"/>
+<enzymatic_search_constraint enzyme="Trypsin" max_num_internal_cleavages="3" min_number_termini="2"/>
+<aminoacid_modification aminoacid="C" massdiff="+57.0215" mass="160.030649" variable="Y" binary="N" description="Carbamidomethyl (C)"/>
+<aminoacid_modification aminoacid="M" massdiff="+15.9949" mass="147.0354" variable="Y" binary="N" description="Oxidation (M)"/>
+<aminoacid_modification aminoacid="K" massdiff="+41.0265" mass="169.121512" variable="Y" binary="N" description="Amidine (K)"/>
+<terminal_modification terminus="n" massdiff="+41.0265" mass="42.034374035" variable="Y" protein_terminus="" description="Amidine (N-term)"/>
+<parameter name="LICENSE" value="Licensed to: Brigham Young University, Provo, United States RCCZ-D4GH-S53W-2G5F-NG5L, (1 processor)."/>
+<parameter name="COM" value="gp41_trials"/>
+<parameter name="TOL" value="70"/>
+<parameter name="TOLU" value="ppm"/>
+<parameter name="ITOL" value="0.6"/>
+<parameter name="ITOLU" value="Da"/>
+<parameter name="PFA" value="3"/>
+<parameter name="DB" value="gp41-Human"/>
+<parameter name="MASS" value="Monoisotopic"/>
+<parameter name="CLE" value="Trypsin"/>
+<parameter name="FILE" value="Gp41.mgf"/>
+<parameter name="PEAK" value="AUTO"/>
+<parameter name="SEARCH" value="MIS"/>
+<parameter name="USERNAME" value="Ryan"/>
+<parameter name="CHARGE" value="2+"/>
+<parameter name="INTERMEDIATE" value="../data/20110601/F002702.dat"/>
+<parameter name="REPORT" value="AUTO"/>
+<parameter name="FORMAT" value="Mascot generic"/>
+<parameter name="FORMVER" value="1.01"/>
+<parameter name="IT_MODS" value="Carbamidomethyl (C),Oxidation (M),Amidine (N-term),Amidine (K)"/>
+<parameter name="TAXONOMY" value="All entries"/>
+<parameter name="REPTYPE" value="peptide"/>
+<parameter name="INSTRUMENT" value="Default"/>
+<parameter name="QUANTITATION" value="None"/>
+<parameter name="DECOY" value="1"/>
+<parameter name="RULES" value="1,2,5,6,8,9,13,14"/>
+<parameter name="INTERNALS" value="0.0,700.0"/>
+</search_summary>
+<spectrum_query spectrum="Gp41.3125.3125.2" start_scan="0" end_scan="0" precursor_neutral_mass="787.90183" assumed_charge="2" search_specification="intensity(92612.7969)" index="1"/>
+<spectrum_query spectrum="Gp41.1860.1860.2" start_scan="0" end_scan="0" precursor_neutral_mass="797.516576" assumed_charge="2" search_specification="intensity(93315.2344)" index="2">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="ELVIQR" peptide_prev_aa="R" peptide_next_aa="L" protein="Q5W0U4" num_tot_proteins="2" num_matched_ions="5" calc_neutral_pep_mass="797.475922" massdiff="+0.0407" num_missed_cleavages="0" is_rejected="0" protein_descr="B box and SPRY domain-containing protein OS=Homo sapiens GN=BSPRY PE=2 SV=1" protein_mw="44353">
+<modification_info mod_nterm_mass="42.034374"></modification_info>
+<search_score name="ionscore" value="10.44"/>
+<search_score name="identityscore" value="41"/>
+<search_score name="homologyscore" value="21"/>
+<search_score name="expect" value="67"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+<spectrum_query spectrum="Gp41.879.879.2" start_scan="6237.03" end_scan="6237.03" precursor_neutral_mass="636.309" assumed_charge="2" search_specification="intensity(653262.38)" index="3">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="LAVTELR" peptide_prev_aa="R" peptide_next_aa="G" protein="Q13608" num_tot_proteins="5" num_matched_ions="5" calc_neutral_pep_mass="800.475586" massdiff="+0.0193" num_missed_cleavages="0" is_rejected="0" protein_descr="Peroxisome assembly factor 2 OS=Homo sapiens GN=PEX6 PE=1 SV=2" protein_mw="103996">
+<search_score name="ionscore" value="29.59"/>
+<search_score name="identityscore" value="43"/>
+<search_score name="homologyscore" value="41"/>
+<search_score name="expect" value="1.2"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+<spectrum_query spectrum="Gp41.2746.2746.2" start_scan="6259.77" end_scan="6259.77" precursor_neutral_mass="636.310" assumed_charge="2" search_specification="intensity(1035298.06)" index="4">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="LAVTELR" peptide_prev_aa="R" peptide_next_aa="G" protein="Q13608" num_tot_proteins="5" num_matched_ions="5" calc_neutral_pep_mass="800.475586" massdiff="+0.0196" num_missed_cleavages="0" is_rejected="0" protein_descr="Peroxisome assembly factor 2 OS=Homo sapiens GN=PEX6 PE=1 SV=2" protein_mw="103996">
+<search_score name="ionscore" value="18.49"/>
+<search_score name="identityscore" value="43"/>
+<search_score name="homologyscore" value="29"/>
+<search_score name="expect" value="15"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+<spectrum_query spectrum="Gp41.1382.1382.2" start_scan="0" end_scan="0" precursor_neutral_mass="800.49564" assumed_charge="2" search_specification="intensity(127307.1094)" index="6">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="EIASLIR" peptide_prev_aa="R" peptide_next_aa="N" protein="O94876" num_tot_proteins="4" num_matched_ions="5" calc_neutral_pep_mass="800.475571" massdiff="+0.0201" num_missed_cleavages="0" is_rejected="0" protein_descr="Transmembrane and coiled-coil domains protein 1 OS=Homo sapiens GN=TMCC1 PE=1 SV=2" protein_mw="72008">
+<search_score name="ionscore" value="10.74"/>
+<search_score name="identityscore" value="42"/>
+<search_score name="homologyscore" value="22"/>
+<search_score name="expect" value="76"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+<spectrum_query spectrum="Gp41.1867.1867.2" start_scan="0" end_scan="0" precursor_neutral_mass="800.495886" assumed_charge="2" search_specification="intensity(56651.0234)" index="7">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="VVTVEVR" peptide_prev_aa="K" peptide_next_aa="G" protein="Q7Z5N4" num_tot_proteins="8" num_matched_ions="3" calc_neutral_pep_mass="800.475616" massdiff="+0.0203" num_missed_cleavages="0" is_rejected="0" protein_descr="Protein sidekick-1 OS=Homo sapiens GN=SDK1 PE=1 SV=2" protein_mw="241926">
+<search_score name="ionscore" value="6.99"/>
+<search_score name="identityscore" value="42"/>
+<search_score name="homologyscore" value="18"/>
+<search_score name="expect" value="1.8e+02"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+<spectrum_query spectrum="Gp41.3183.3183.2" start_scan="6342.05" end_scan="6342.05" precursor_neutral_mass="636.308" assumed_charge="2" search_specification="intensity(127399.27)" index="8">
+<search_result search_id="1">
+<search_hit hit_rank="1" peptide="LAVTELR" peptide_prev_aa="R" peptide_next_aa="G" protein="Q13608" num_tot_proteins="5" num_matched_ions="9" calc_neutral_pep_mass="800.475586" massdiff="+0.0205" num_missed_cleavages="0" is_rejected="0" protein_descr="Peroxisome assembly factor 2 OS=Homo sapiens GN=PEX6 PE=1 SV=2" protein_mw="103996">
+<search_score name="ionscore" value="11.14"/>
+<search_score name="identityscore" value="42"/>
+<search_score name="homologyscore" value="21"/>
+<search_score name="expect" value="69"/>
+</search_hit>
+</search_result>
+</spectrum_query>
+</msms_run_summary>
+</msms_pipeline_analysis>
