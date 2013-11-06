@@ -1,14 +1,26 @@
 require 'nokogiri'	
+require 'mspire/mzml'
 require 'pry'
+#require_relative 'binary_search'
 
-PepID = Struct.new(:precursor_neutral_mass, :aaseq, :charge, :scan_num, :retention_time, :protein)
+def ppm(m1,m2)
+  (m2-m1)/m1*1e6
+end
+def ppm_range(mass, ppm = MatchThreshold)
+  range = (ppm*mass)/1e6
+  (mass-range..mass+range)
+end
+
+
+PepID = Struct.new(:precursor_neutral_mass, :aaseq, :mods, :charge, :scan_num, :retention_time, :protein)
 module PeakIDMapper
+  StandardWindow = [-60, 200]
   class PepxmlParser
     # This is from the run_compare code I wrote
     def self.parse(file)
       doc = Nokogiri.XML(File.open(file))
       pepids = []
-      binding.pry
+      search_sum = doc.xpath("//xmlns:search_summary") # search for aminoacid_modification and terminal_modification
       doc.xpath('//xmlns:search_hit[@hit_rank=$value]', nil, {value: '1'}).each do |search_hit|
         spec_query = search_hit.parent.parent
         output = PepID.new
@@ -20,20 +32,47 @@ module PeakIDMapper
         output.aaseq = search_hit.attributes["peptide"].value
         pepids << output
       end
-      pepids
+      pepids.uniq {|a| a.aaseq} ## PROBABLY a bad idea
     end
+  end
 
-  end
   class MzmlParser
-    def self.parse(file)
+    Matches = Struct.new(:retention_times, :mzs, :intensities)
+    PpmThreshold = 100
+    def self.join_pepxml_with_mzml_file(pepdata, file)
+      output_map = []
+      Mspire::Mzml.open(file) do |mzml|
+        pepdata.each do |pepid|
+          rt_array, mz_array, int_array = [],[],[]
+          mass = pepid.precursor_neutral_mass
+          mzml.each_spectrum do |spectrum|
+            next if spectrum.peaks.empty?
+            list = spectrum.peaks
+            rrange = list.transpose.first.bsearch_range do |a| 
+              ppm_range(a, PpmThreshold).include?(mass) ? 0 : a <=> mass
+            end
+            resp = spectrum.peaks[rrange].flatten
+            next if resp.first == nil 
+            rt_array << spectrum.retention_time
+            mz_array << resp.first
+            int_array << resp.last
+          end
+          next if mz_array.empty?
+          output_map << PeakIDMap.new(pepid.aaseq, pepid.charge, nil, mz_array.inject(:+)/mz_array.size.to_f, int_array.inject(:+), [rt_array, mz_array, int_array])
+        end
+      end
+      output_map
     end
   end
+
   PeakIDMap = Struct.new(:aaseq, :charge, :mods, :mz_mean, :total_intensity, :data) # Data = [rt_array, mz_array, int_array]
+
   module CommandLine
+
     def self.run(pepxml, mzml, opts = {})
       pepdata = PepxmlParser.parse(pepxml)
-      mzdata = MzmlParser.parse(mzml)
-      join_pepxml_and_mzml_data(pepdata, mzdata)
+      peakIDs = MzmlParser.join_pepxml_with_mzml_file(pepdata, mzml)
+      p peakIDs
     end
   end
 end
