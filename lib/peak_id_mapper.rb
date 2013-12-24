@@ -3,11 +3,15 @@ require 'mspire/mzml'
 require 'pry'
 #require_relative 'binary_search'
 
+GLOBALJOIN = ";"
+
 PpmThreshold = 100
+RTThreshold = 400 # amount forward and backward to search
+IntensityThreshold = 500
 Matches = Struct.new(:retention_times, :mzs, :intensities)
-# determine_stats returns [min, max, mean, sample_variance, standard_deviation, sum]
-PeakIDMap = Struct.new(:aaseq, :proteins, :mods, :charge, :mh, :ion_score, :ppm_error, :spectrum_file, :match_file, :rt, :mz, :int) # Data = [rt_array, mz_array, int_array]
-HEADERLINE = %w{Sequence Proteins RTmin RTmax RTmean RTvariance RTstdev Modifications Charge MZmin MZmax MZmean MZvariance MZstdev MH+ deltaM(ppm) Ion_Score SpectrumFile MatchFile Imin Imax Imean Ivariance Istdev Isum}.join(",")
+# determine_stats returns [min, max, mean, sample_variance, standard_deviation, sum, size]
+PeakIDMap = Struct.new(:aaseq, :proteins, :mods, :charge, :mh, :ion_score, :ppm_error, :spectrum_file, :match_file, :rt, :mz, :int, :rt_array, :mz_array, :int_array) # Data = [rt_array, mz_array, int_array]
+HEADERLINE = %w{Sequence Proteins RTmin RTmax RTmean RTvariance RTstdev RTsum RTsize Modifications Charge MZmin MZmax MZmean MZvariance MZstdev MZsum MZsize MH+ deltaM(ppm) Ion_Score SpectrumFile MatchFile Imin Imax Imean Ivariance Istdev Isum Isize RT MZ Intensities RT_array MZ_array Int_array}.join(GLOBALJOIN)
 PepID = Struct.new(:precursor_neutral_mass, :aaseq, :mods, :charge, :scan_num, :retention_time, :proteins, :match_file, :ion_score, :ppm_error, :mh)
 
 def ppm(m1,m2)
@@ -39,14 +43,14 @@ class PeakIDMapper
   StandardWindow = [-60, 200]
   def self.determine_stats(array)
     min, max = array.minmax
-    [min, max, array.mean, array.sample_variance, array.standard_deviation, array.sum]
+    [min, max, array.mean, array.sample_variance, array.standard_deviation, array.sum, array.size]
   end
   def self.peakIDs_to_csv(peakids, file = nil)
     file ||= peakids.map{|a| [a.spectrum_file, a.match_file].map{|f| File.basename(f).gsub(File.extname(f),"")}}.flatten.uniq.join("_") + '.csv'
     File.open(file, 'w+') do |outstream|
       outstream.puts HEADERLINE
       peakids.each do |pk|
-        outstream.puts [pk.aaseq, pk.proteins, pk.rt[0,5], pk.mods, pk.charge, pk.mz[0,5], pk.mh, pk.ppm_error, pk.ion_score, pk.spectrum_file, pk.match_file, pk.int].flatten.join(",")
+        outstream.puts [pk.aaseq, pk.proteins, pk.rt, pk.mods, pk.charge, pk.mz, pk.mh, pk.ppm_error, pk.ion_score, pk.spectrum_file, pk.match_file, pk.int, pk.rt.join(","), pk.mz.join(","), pk.int.join(","), pk.rt_array.join(","), pk.mz_array.join(","), pk.int_array.join(",")].flatten.join(GLOBALJOIN)
       end
     end
   end
@@ -69,7 +73,7 @@ class PeakIDMapper
           end
         end
         output.precursor_neutral_mass = spec_query.attributes["precursor_neutral_mass"].value.to_f
-        output.retention_time = nil
+        output.retention_time = spec_query.attributes["start_scan"].value.to_i
         output.proteins = search_hit.attributes["protein"].value
         output.aaseq = search_hit.attributes["peptide"].value
         output.match_file = file
@@ -78,7 +82,7 @@ class PeakIDMapper
         output.ppm_error = search_hit.attributes["massdiff"].value.to_f
         pepids << output
       end
-      pepids.uniq {|a| a.aaseq} ## PROBABLY a bad idea
+      pepids#.uniq {|a| a.aaseq} ## PROBABLY a bad idea
     end
   end
 
@@ -89,31 +93,30 @@ class PeakIDMapper
         pepdata.each do |pepid|
           rt_array, mz_array, int_array = [],[],[]
           mass = pepid.precursor_neutral_mass
+          mass_range = ppm_range(mass, PpmThreshold)
+          time_range = (pepid.retention_time-RTThreshold)..(pepid.retention_time+RTThreshold)
           mzml.each_spectrum do |spectrum|
             next if spectrum.peaks.empty?
+            next unless time_range.include?(spectrum.retention_time)
             list = spectrum.peaks
             rrange = list.transpose.first.bsearch_range do |a| 
-              ppm_range(a, PpmThreshold).include?(mass) ? 0 : a <=> mass
+              mass_range.include?(a) ? 0 : a <=> mass
             end
-            resp = spectrum.peaks[rrange].flatten
-            next if resp.first == nil 
+            resp = spectrum.peaks[rrange].flatten #select {|a| puts "mz: #{a.first}"; puts "ppm: #{ppm(a.first,mass)}"; ppm(a.first,mass) < PpmThreshold}
+            next unless mass_range.include?(resp.first)
+            next if resp.first == nil
+            next if resp.last < IntensityThreshold
             rt_array << spectrum.retention_time
             mz_array << resp.first
             int_array << resp.last
           end
           next if mz_array.empty?
-          # determine_stats returns [min, max, mean, sample_variance, standard_deviation, sum]
-#PeakIDMap = Struct.new(:aaseq, :proteins, :mods, :charge, :mh, :ppm_error, :spectrum_file, :match_file, :rt, :mz, :int) # Data = [rt_array, mz_array, int_array]
-          output_map << PeakIDMap.new(pepid.aaseq, pepid.proteins, pepid.mods, pepid.charge, pepid.mh, pepid.ion_score, pepid.ppm_error, file, pepid.match_file, PeakIDMapper.determine_stats(rt_array), PeakIDMapper.determine_stats(mz_array), PeakIDMapper.determine_stats(int_array))
-
+          output_map << PeakIDMap.new(pepid.aaseq, pepid.proteins, pepid.mods, pepid.charge, pepid.mh, pepid.ion_score, pepid.ppm_error, file, pepid.match_file, PeakIDMapper.determine_stats(rt_array), PeakIDMapper.determine_stats(mz_array), PeakIDMapper.determine_stats(int_array), rt_array, mz_array, int_array)
         end
       end
       output_map
     end
   end
-
-  #PeakIDMap = Struct.new(:aaseq, :charge, :mods, :mz_mean, :total_intensity, :rt, :mz, :int, :data ) # Data = [rt_array, mz_array, int_array]
-
   module CommandLine
     def self.run(pepxml, mzml, opts = {})
       pepdata = PepxmlParser.parse(pepxml)
