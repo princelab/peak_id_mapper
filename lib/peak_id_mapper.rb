@@ -41,6 +41,27 @@ module PeakIDMapper
     PpmThreshold = 100
     def self.join_pepxml_with_mzml_file(pepdata, file)
       output_map = []
+      # This is the file which you must cache.  
+      # Basically, pre-read the file into memory and then play with the structures you've cached inside the loop
+      # The problem otherwise is that the random access abilities of Mspire reek havoc on the CPU cycles.
+      
+      # I would do something like this:
+      SpectralObject = Struct.new(:peaks, :retention_time)
+      spectra = []
+      Mspire::Mzml.open(file) do |mzml|
+        mzml.each_spectrum do |spectrum|
+          spectra << SpectralObject.new(spectrum.peaks, spectrum.retention_time)
+        end
+      end
+      # Now,do the following loops using the previous data instead...
+      
+      pepdata.each do |pepid|
+        rt_array, mz_array, int_array = [],[],[]
+        mass = pepid.precursor_neutral_mass
+        spectra.each do |spectralobject| # |peaks, retention_time|
+          next if spectralobject.peaks.empty?
+          # ... continued.
+      ## Previous code starts here here
       Mspire::Mzml.open(file) do |mzml|
         pepdata.each do |pepid|
           rt_array, mz_array, int_array = [],[],[]
