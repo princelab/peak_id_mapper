@@ -3,6 +3,12 @@ require 'mspire/mzml'
 require 'pry'
 #require_relative 'binary_search'
 
+$VERBOSE = true
+
+def putsv(thing)
+  puts thing if $VERBOSE
+end
+
 GLOBALJOIN = ";"
 
 PpmThreshold = 100
@@ -46,6 +52,7 @@ class PeakIDMapper
     [min, max, array.mean, array.sample_variance, array.standard_deviation, array.sum, array.size]
   end
   def self.peakIDs_to_csv(peakids, file = nil)
+    putsv "Loading the peakIDS to csv"
     file ||= peakids.map{|a| [a.spectrum_file, a.match_file].map{|f| File.basename(f).gsub(File.extname(f),"")}}.flatten.uniq.join("_") + '.csv'
     File.open(file, 'w+') do |outstream|
       outstream.puts HEADERLINE
@@ -57,6 +64,7 @@ class PeakIDMapper
   class PepxmlParser
     # This is from the run_compare code I wrote
     def self.parse(file)
+      putsv "Parsing the pepxml #{file}"
       doc = Nokogiri.XML(File.open(file))
       pepids = []
       search_sum = doc.xpath("//xmlns:search_summary") # search for aminoacid_modification and terminal_modification
@@ -89,6 +97,7 @@ class PeakIDMapper
   class MzmlParser
     SpectralObject = Struct.new(:peaks, :retention_time)
     def self.join_pepxml_with_mzml_file(pepdata, file)
+      putsv "Joining the pepids with the mzml"
       output_map = []
       # This is the file which you must cache.  
       # Basically, pre-read the file into memory and then play with the structures you've cached inside the loop
@@ -101,6 +110,7 @@ class PeakIDMapper
           spectra << SpectralObject.new(spectrum.peaks, spectrum.retention_time)
         end
       end
+      putsv "Finished reading the file, and have now closed the MZML"
       # Now,do the following loops using the previous data instead...
       
       pepdata.each do |pepid|
