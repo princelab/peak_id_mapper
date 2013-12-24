@@ -87,6 +87,7 @@ class PeakIDMapper
   end
 
   class MzmlParser
+    SpectralObject = Struct.new(:peaks, :retention_time)
     def self.join_pepxml_with_mzml_file(pepdata, file)
       output_map = []
       # This is the file which you must cache.  
@@ -94,7 +95,6 @@ class PeakIDMapper
       # The problem otherwise is that the random access abilities of Mspire reek havoc on the CPU cycles.
       
       # I would do something like this:
-      SpectralObject = Struct.new(:peaks, :retention_time)
       spectra = []
       Mspire::Mzml.open(file) do |mzml|
         mzml.each_spectrum do |spectrum|
@@ -106,35 +106,27 @@ class PeakIDMapper
       pepdata.each do |pepid|
         rt_array, mz_array, int_array = [],[],[]
         mass = pepid.precursor_neutral_mass
+        mass_range = ppm_range(mass, PpmThreshold)
+        time_range = (pepid.retention_time-RTThreshold)..(pepid.retention_time+RTThreshold)
         spectra.each do |spectralobject| # |peaks, retention_time|
           next if spectralobject.peaks.empty?
           # ... continued.
-      ## Previous code starts here here
-      Mspire::Mzml.open(file) do |mzml|
-        pepdata.each do |pepid|
-          rt_array, mz_array, int_array = [],[],[]
-          mass = pepid.precursor_neutral_mass
-          mass_range = ppm_range(mass, PpmThreshold)
-          time_range = (pepid.retention_time-RTThreshold)..(pepid.retention_time+RTThreshold)
-          mzml.each_spectrum do |spectrum|
-            next if spectrum.peaks.empty?
-            next unless time_range.include?(spectrum.retention_time)
-            list = spectrum.peaks
+            next unless time_range.include?(spectralobject.retention_time)
+            list = spectralobject.peaks
             rrange = list.transpose.first.bsearch_range do |a| 
               mass_range.include?(a) ? 0 : a <=> mass
             end
-            resp = spectrum.peaks[rrange].flatten #select {|a| puts "mz: #{a.first}"; puts "ppm: #{ppm(a.first,mass)}"; ppm(a.first,mass) < PpmThreshold}
+            resp = spectralobject.peaks[rrange].flatten #select {|a| puts "mz: #{a.first}"; puts "ppm: #{ppm(a.first,mass)}"; ppm(a.first,mass) < PpmThreshold}
             next unless mass_range.include?(resp.first)
             next if resp.first == nil
             next if resp.last < IntensityThreshold
-            rt_array << spectrum.retention_time
+            rt_array << spectralobject.retention_time
             mz_array << resp.first
             int_array << resp.last
           end
           next if mz_array.empty?
           output_map << PeakIDMap.new(pepid.aaseq, pepid.proteins, pepid.mods, pepid.charge, pepid.mh, pepid.ion_score, pepid.ppm_error, file, pepid.match_file, PeakIDMapper.determine_stats(rt_array), PeakIDMapper.determine_stats(mz_array), PeakIDMapper.determine_stats(int_array), rt_array, mz_array, int_array)
         end
-      end
       output_map
     end
   end
