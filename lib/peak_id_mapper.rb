@@ -3,10 +3,10 @@ require 'mspire/mzml'
 require 'pry'
 #require_relative 'binary_search'
 
-$VERBOSE = true
+$PIMVERBOSE = true
 
 def putsv(thing)
-  puts thing if $VERBOSE
+  puts thing if $PIMVERBOSE
 end
 
 GLOBALJOIN = ";"
