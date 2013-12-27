@@ -54,12 +54,14 @@ class PeakIDMapper
   def self.peakIDs_to_csv(peakids, file = nil)
     putsv "Loading the peakIDS to csv"
     file ||= peakids.map{|a| [a.spectrum_file, a.match_file].map{|f| File.basename(f).gsub(File.extname(f),"")}}.flatten.uniq.join("_") + '.csv'
-    File.open(file, 'w+') do |outstream|
+    putsv "Writing file: #{file}"
+    File.open(file, 'w') do |outstream|
       outstream.puts HEADERLINE
       peakids.each do |pk|
         outstream.puts [pk.aaseq, pk.proteins, pk.rt, pk.mods, pk.charge, pk.mz, pk.mh, pk.ppm_error, pk.ion_score, pk.spectrum_file, pk.match_file, pk.int, pk.rt.join(","), pk.mz.join(","), pk.int.join(","), pk.rt_array.join(","), pk.mz_array.join(","), pk.int_array.join(",")].flatten.join(GLOBALJOIN)
       end
     end
+    putsv "Failure" unless File.exists?(file)
   end
   class PepxmlParser
     # This is from the run_compare code I wrote
