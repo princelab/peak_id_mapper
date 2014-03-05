@@ -65,7 +65,10 @@ class PeakIDMapper
         gp << "set term svg enhanced\n"
         gp << %Q{set output "spectrum#{i}.svg"\n}
         Gnuplot::Plot.new( gp ) do |plot|
-          title_string = [:aaseq, :charge, :mh, :ion_score, :ppm_error, :mz, :rt].map {|key| [key, peak_id.send(key).round(4)].join(": ") }.join(", ")
+          title_string = [:aaseq, :charge, :mh, :ion_score, :ppm_error, :mz, :rt].map do |key| 
+            val = peak_id.send(key)
+            [key, val.is_a?(Float) ? val.round(4) : val].join(": ") 
+          end.join(", ")
           File.write("spectrum#{i}.txt", title_string)
 
           plot.title title_string
