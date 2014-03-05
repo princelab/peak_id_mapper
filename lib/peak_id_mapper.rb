@@ -1,6 +1,9 @@
 require 'nokogiri'	
 require 'mspire/mzml'
+require 'mspire/mass/all'
 require 'pry'
+require 'gnuplot'
+
 #require_relative 'binary_search'
 
 $PIMVERBOSE = true
@@ -26,6 +29,11 @@ def ppm_range(mass, ppm = MatchThreshold)
   range = (ppm*mass)/1e6
   (mass-range..mass+range)
 end
+def ppm_mz_range(mz, ppm = MatchThreshold)
+  range = (ppm*mz)/1e6
+  (mz-range..mz+range)
+end
+
 
 module Enumerable
   def sum
@@ -50,6 +58,35 @@ class PeakIDMapper
     min, max = array.minmax
     [min, max, array.mean, array.sample_variance, array.standard_deviation, array.sum, array.size]
   end
+
+  def self.plot_peakIDs(peak_ids)
+    peak_ids.each_with_index do |peak_id,i|
+      Gnuplot.open do |gp|
+        gp << "set term svg enhanced\n"
+        gp << %Q{set output "spectrum#{i}.svg"\n}
+        Gnuplot::Plot.new( gp ) do |plot|
+          title_string = [:aaseq, :charge, :mh, :ion_score, :ppm_error, :mz, :rt].map {|key| [key, peak_id.send(key).round(4)].join(": ") }.join(", ")
+          File.write("spectrum#{i}.txt", title_string)
+
+          plot.title title_string
+          plot.xlabel "time (s)"
+          plot.ylabel "intensity"
+          plot.y2label "m/z"
+
+          plot.data << Gnuplot::DataSet.new( [peak_id.rt_array, peak_id.mz_array] ) do |ds|
+            ds.axes = "x1y1"
+            ds.with = "lines"
+            ds.title = "ion intensity"
+          end
+          plot.data << Gnuplot::DataSet.new( [peak_id.rt_array, peak_id.int_array] ) do |ds|
+            ds.axes = "x1y2"
+            ds.title = "m/z"
+          end
+        end
+      end
+    end
+  end
+
   def self.peakIDs_to_csv(peakids, file = nil)
     putsv "Loading the peakIDS to csv"
     file ||= peakids.map{|a| [a.spectrum_file, a.match_file].map{|f| File.basename(f).gsub(File.extname(f),"")}}.flatten.uniq.join("_") + '.csv'
@@ -95,7 +132,20 @@ class PeakIDMapper
 
   class MzmlParser
     # spectrum_array is [mzs, intensities]
-    SpectralObject = Struct.new(:spectrum_array, :retention_time)
+    SpectralObject = Struct.new(:spectrum_array, :retention_time) do
+      def mzs
+        spectrum_array[0]
+      end
+
+      def intensities
+        spectrum_array[1]
+      end
+
+      def peaks(&block)
+        spectrum_array[0].zip(spectrum_array[1], &block) 
+      end
+    end
+
     def self.join_pepxml_with_mzml_file(pep_ids, file)
       putsv "Joining the pepids with the mzml"
       output_map = []
@@ -113,24 +163,47 @@ class PeakIDMapper
       putsv "Finished reading the file, and have now closed the MZML"
       # Now,do the following loops using the previous data instead...
 
+      cnt = 0
       pep_ids.each do |pep_id|
         rt_array, mz_array, int_array = [],[],[]
+
         mass = pep_id.precursor_neutral_mass
         mass_range = ppm_range(mass, PpmThreshold)
+
+        neutral_mass = pep_id.precursor_neutral_mass - Mspire::Mass::Element[:H] # this is (M+H) !!!
+        observed_mz = (neutral_mass + (Mspire::Mass::PROTON * pep_id.charge)) / pep_id.charge
+
+        mz_range = ppm_mz_range(observed_mz, PpmThreshold)
         time_range = (pep_id.retention_time-RTThreshold)..(pep_id.retention_time+RTThreshold)
+
         spectra.each do |spectralobject|
-          next if spectralobject.peaks.empty?
+          next if spectralobject.first.empty?
           next unless time_range.include?(spectralobject.retention_time)
-          rrange = spectralobject.first.bsearch_range do |a| 
-            mass_range.include?(a) ? 0 : a <=> mass
+
+          (mzs, intensities) = spectralobject.spectrum_array
+          
+          rrange = mzs.bsearch_range do |a| 
+            mz_range.include?(a) ? 0 : a <=> observed_mz
           end
-          resp = spectralobject.peaks[rrange].flatten #select {|a| puts "mz: #{a.first}"; puts "ppm: #{ppm(a.first,mass)}"; ppm(a.first,mass) < PpmThreshold}
-          next unless mass_range.include?(resp.first)
-          next if resp.first == nil
-          next if resp.last < IntensityThreshold
+
+          indices = rrange.to_a
+          best_index = 
+            case indices.size
+            when 0
+              next
+            when 1
+              indices.first
+            else
+              # grab the closest peak if there are multiple peaks within the range
+              # in case of tie, choose the largest intensity
+              indices.sort_by {|index| [(mzs[index] - observed_mz).abs, -intensities[index], mzs[index]] }.first
+            end
+
+          next if intensities[best_index] < IntensityThreshold
+
           rt_array << spectralobject.retention_time
-          mz_array << resp.first
-          int_array << resp.last
+          mz_array << mzs[best_index]
+          int_array << intensities[best_index]
         end
         next if mz_array.empty?
         output_map << PeakIDMap.new(pep_id.aaseq, pep_id.proteins, pep_id.mods, pep_id.charge, pep_id.mh, pep_id.ion_score, pep_id.ppm_error, file, pep_id.match_file, PeakIDMapper.determine_stats(rt_array), PeakIDMapper.determine_stats(mz_array), PeakIDMapper.determine_stats(int_array), rt_array, mz_array, int_array)
@@ -155,5 +228,6 @@ if __FILE__ == $0
     exit
   end
   peak_ids = PeakIDMapper::CommandLine.run(*args)
-  PeakIDMapper.peakIDs_to_csv(peak_ids)
+  #PeakIDMapper.peakIDs_to_csv(peak_ids)
+  PeakIDMapper.plot_peakIDs(peak_ids)
 end
